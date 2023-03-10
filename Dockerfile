@@ -21,5 +21,5 @@ CMD echo "Starting soketi app..." && \
     echo "Pusher port: ${PUSHER_PORT}" && \
     echo "Pusher scheme: ${PUSHER_SCHEME}" && \
     echo "Metrics server port: ${METRICS_SERVER_PORT}" && \
-    echo "Enable client messages: ${DEFAULT_APP_ENABLE_CLIENT_MESSAGES}" &&
-    ["soketi", "-host", "0.0.0.0", "-port", "${SOKETI_PORT:-6001}", "-debug", "${SOKETI_DEBUG}"]
+    echo "Enable client messages: ${DEFAULT_APP_ENABLE_CLIENT_MESSAGES}" && \
+    soketi -host 0.0.0.0 -port ${SOKETI_PORT:-6001} -debug ${SOKETI_DEBUG}
