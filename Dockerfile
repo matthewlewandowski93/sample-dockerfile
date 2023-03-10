@@ -1,14 +1,36 @@
-FROM quay.io/soketi/soketi:1.4-16-debian
+ARG VERSION=lts
 
-ENV SOKETI_DEBUG=${DEBUG:-1} \
-    DEFAULT_APP_ID=${PUSHER_APP_ID:-some-id} \
-    DEFAULT_APP_KEY=${PUSHER_APP_KEY:-app-key} \
-    DEFAULT_APP_SECRET=${PUSHER_APP_SECRET:-some-app-secret} \
-    PUSHER_HOST=${PUSHER_HOST:-127.0.0.1} \
-    PUSHER_PORT=${PUSHER_PORT:-6001} \
-    METRICS_SERVER_PORT=${METRICS_SERVER_PORT:-9601} \
-    DEFAULT_APP_ENABLE_CLIENT_MESSAGES=${DEFAULT_APP_ENABLE_CLIENT_MESSAGES:-true}
+FROM --platform=$BUILDPLATFORM node:$VERSION-alpine as build
 
-EXPOSE ${SOKETI_PORT:-6001} ${SOKETI_METRICS_SERVER_PORT:-9601}
+ENV PYTHONUNBUFFERED=1
 
-CMD soketi -host 0.0.0.0 -port ${SOKETI_PORT:-6001} -debug ${SOKETI_DEBUG}
+COPY . /tmp/build
+
+WORKDIR /tmp/build
+
+RUN apk add --no-cache --update git python3 gcompat ; \
+    apk add --virtual build-dependencies build-base gcc wget ; \
+    ln -sf python3 /usr/bin/python ; \
+    python3 -m ensurepip ; \
+    pip3 install --no-cache --upgrade pip setuptools ; \
+    npm ci ; \
+    npm run build ; \
+    npm ci --omit=dev --ignore-scripts ; \
+    npm prune --production ; \
+    rm -rf node_modules/*/test/ node_modules/*/tests/ ; \
+    npm install -g modclean ; \
+    modclean -n default:safe --run ; \
+    mkdir -p /app ; \
+    cp -r bin/ dist/ node_modules/ LICENSE package.json package-lock.json README.md /app/
+
+FROM --platform=$BUILDPLATFORM node:$VERSION-alpine
+
+LABEL maintainer="Renoki Co. <alex@renoki.org>"
+
+COPY --from=build /app /app
+
+WORKDIR /app
+
+EXPOSE 6001
+
+ENTRYPOINT ["node", "/app/bin/server.js", "start"]
