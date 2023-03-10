@@ -1,36 +1,11 @@
-ARG VERSION=lts
+FROM quay.io/soketi/soketi:1.4-16-debian
 
-FROM --platform=$BUILDPLATFORM node:$VERSION-alpine as build
+ENV SOKETI_DEBUG=${DEBUG:-1}
+ENV DEFAULT_APP_ID=${PUSHER_APP_ID:-some-id}
+ENV DEFAULT_APP_KEY=${PUSHER_APP_KEY:-app-key}
+ENV DEFAULT_APP_SECRET=${PUSHER_APP_SECRET:-some-app-secret}
 
-ENV PYTHONUNBUFFERED=1
+EXPOSE ${SOKETI_PORT:-6001}
+EXPOSE ${SOKETI_METRICS_SERVER_PORT:-9601}
 
-COPY . /tmp/build
-
-WORKDIR /tmp/build
-
-RUN apk add --no-cache --update git python3 gcompat ; \
-    apk add --virtual build-dependencies build-base gcc wget ; \
-    ln -sf python3 /usr/bin/python ; \
-    python3 -m ensurepip ; \
-    pip3 install --no-cache --upgrade pip setuptools ; \
-    npm ci ; \
-    npm run build ; \
-    npm ci --omit=dev --ignore-scripts ; \
-    npm prune --production ; \
-    rm -rf node_modules/*/test/ node_modules/*/tests/ ; \
-    npm install -g modclean ; \
-    modclean -n default:safe --run ; \
-    mkdir -p /app ; \
-    cp -r bin/ dist/ node_modules/ LICENSE package.json package-lock.json README.md /app/
-
-FROM --platform=$BUILDPLATFORM node:$VERSION-alpine
-
-LABEL maintainer="Renoki Co. <alex@renoki.org>"
-
-COPY --from=build /app /app
-
-WORKDIR /app
-
-EXPOSE 6001
-
-ENTRYPOINT ["node", "/app/bin/server.js", "start"]
+CMD ["soketi"]
