@@ -8,4 +8,4 @@ ENV DEFAULT_APP_SECRET=${PUSHER_APP_SECRET:-some-app-secret}
 EXPOSE ${SOKETI_PORT:-6001}
 EXPOSE ${SOKETI_METRICS_SERVER_PORT:-9601}
 
-CMD ["soketi"]
+CMD ["soketi", "-c", "/etc/soketi/config.json"]
